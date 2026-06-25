@@ -1,0 +1,14 @@
+.env
+.env.local
+.env.*.local
+dist/
+node_modules/
+.git/
+.gitignore
+README.md
+migrations/
+test-*.js
+src/
+index.html
+vite.config.js
+.vscode/

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "user-1782167841684-jtl6epk",
+    "fullName": "RHTECH",
+    "email": "Ibrahimkehinde749@gmail.com",
+    "password": "$2b$10$qrXL5hI.BEjdsmvjShAK9Oz6F1B2uu68HGxkKd1WPYknClAb4dXiK",
+    "phoneNumber": "08140895102",
+    "registrationDate": "2026-06-22T22:37:21.684Z",
+    "accountStatus": "active"
+  },
+  {
+    "id": "user-1782168037880-rc99zoy",
+    "fullName": "RHTECH",
+    "email": "ibrahimkehinde749@gmail.com",
+    "password": "$2b$10$qi.urqbEsOQAOX3Qtv3In.OJA/uC.BQQK9T/gLgtOrO.N5YxG0Om.",
+    "phoneNumber": "08140895102",
+    "registrationDate": "2026-06-22T22:40:37.880Z",
+    "accountStatus": "active"
+  }
+]

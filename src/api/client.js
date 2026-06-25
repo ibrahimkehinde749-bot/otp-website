@@ -1,0 +1,138 @@
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'
+
+function getAuthToken() {
+  const stored = localStorage.getItem('otp-auth')
+  if (!stored) return null
+  try {
+    return JSON.parse(stored).token
+  } catch {
+    return null
+  }
+}
+
+async function apiCall(endpoint, options = {}) {
+  const token = getAuthToken()
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  }
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  let url = `${API_BASE_URL}${endpoint}`
+  if (options.query && typeof options.query === 'object') {
+    const params = new URLSearchParams()
+    for (const [key, value] of Object.entries(options.query)) {
+      if (value !== undefined && value !== null) {
+        params.append(key, String(value))
+      }
+    }
+    const queryString = params.toString()
+    if (queryString) {
+      url += `?${queryString}`
+    }
+  }
+
+  const requestOptions = {
+    headers,
+    ...options,
+  }
+  delete requestOptions.query
+
+  const response = await fetch(url, requestOptions)
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data.error || 'API request failed')
+  }
+
+  return data.data
+}
+
+export const api = {
+  auth: {
+    register: (details) => apiCall('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(details),
+    }),
+    login: (details) => apiCall('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(details),
+    }),
+    logout: () => apiCall('/auth/logout', { method: 'POST' }),
+  },
+  user: {
+    profile: () => apiCall('/user/profile'),
+    update: (updates) => apiCall('/user/update', {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+  },
+  balance: {
+    get: () => apiCall('/balance'),
+  },
+  orders: {
+    getAll: () => apiCall('/orders'),
+    get: (id) => apiCall(`/orders/${id}`),
+    purchase: (details) => apiCall('/purchase', {
+      method: 'POST',
+      body: JSON.stringify(details),
+    }),
+    complete: (id) => apiCall(`/orders/${id}/complete`, { method: 'POST' }),
+    cancel: (id) => apiCall(`/orders/${id}/cancel`, { method: 'POST' }),
+  },
+  wallet: {
+    get: () => apiCall('/wallet'),
+    getTransactions: () => apiCall('/wallet/transactions'),
+    deposit: (details) => apiCall('/wallet/deposit', {
+      method: 'POST',
+      body: JSON.stringify(details),
+    }),
+    verify: (details) => apiCall('/wallet/verify', {
+      method: 'POST',
+      body: JSON.stringify(details),
+    }),
+  },
+  numpool: {
+    balance: {
+      get: () => apiCall('/numpool/balance'),
+    },
+    services: {
+      getAll: () => apiCall('/numpool/services'),
+    },
+    countries: {
+      getAll: (service) => apiCall('/numpool/countries', {
+        method: 'GET',
+        query: service ? { service } : undefined,
+      }),
+    },
+    buy: (details) => apiCall('/numpool/buy', {
+      method: 'POST',
+      body: JSON.stringify(details),
+    }),
+    smsStatus: (orderId) => apiCall(`/numpool/sms/${orderId}`),
+    cancel: (orderId) => apiCall(`/numpool/cancel/${orderId}`, {
+      method: 'POST',
+    }),
+    pricing: (query) => apiCall('/numpool/pricing', {
+      method: 'GET',
+      query,
+    }),
+    lookup: (body) => apiCall('/numpool/lookup', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  },
+  countries: {
+    getAll: (service) => apiCall('/countries', {
+      method: 'GET',
+      query: service ? { service } : undefined,
+    }),
+  },
+  services: {
+    getAll: () => apiCall('/services'),
+  },
+}

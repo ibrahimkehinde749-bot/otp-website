@@ -1,0 +1,14 @@
+{
+  // Prefer Live Server/Live Preview use the Vite dev port
+  "liveServer.settings.port": 5173,
+  // Fallback entries for different preview extensions
+  "livePreview.server.url": "http://localhost:5173",
+  "livePreview.defaultPreviewPath": "/",
+  // Additional keys some preview extensions use
+  "livePreview.server.port": 5173,
+  "livePreview.port": 5173,
+  // For Live Server (ritwickdey) ensure root is project root
+  "liveServer.settings.root": "/",
+  // If Live Preview is used, prefer opening the specified URL
+  "livePreview.openPreviewAtStart": false
+}
