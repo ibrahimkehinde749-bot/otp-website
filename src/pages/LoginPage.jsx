@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client.js'
+import Alert from '../components/Alert.jsx'
 
 function LoginPage({ onLogin }) {
   const [form, setForm] = useState({ email: '', password: '' })
@@ -28,7 +29,7 @@ function LoginPage({ onLogin }) {
       onLogin(result.user, result.token)
       navigate('/app/dashboard')
     } catch (err) {
-      setError(err.message)
+      setError(err?.message || 'Login failed. Please try again.')
     }
   }
 
@@ -36,7 +37,7 @@ function LoginPage({ onLogin }) {
     <div className="auth-page">
       <div className="auth-card">
         <h1>Login</h1>
-        {error && <div className="alert">{error}</div>}
+        {error && <Alert>{error}</Alert>}
         <form onSubmit={handleSubmit}>
           <label>
             Email

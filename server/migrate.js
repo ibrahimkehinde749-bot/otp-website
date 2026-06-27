@@ -4,11 +4,15 @@ import { query } from './service/db.js'
 
 const {
   DB_HOST,
+  DB_NAME,
+  DB_USER,
   DB_PASSWORD,
 } = process.env
 
 const missingEnv = []
 if (!DB_HOST) missingEnv.push('DB_HOST')
+if (!DB_NAME) missingEnv.push('DB_NAME')
+if (!DB_USER) missingEnv.push('DB_USER')
 if (!DB_PASSWORD) missingEnv.push('DB_PASSWORD')
 
 if (missingEnv.length > 0) {

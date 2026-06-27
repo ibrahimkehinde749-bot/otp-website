@@ -41,12 +41,21 @@ async function apiCall(endpoint, options = {}) {
   }
   delete requestOptions.query
 
-  const response = await fetch(url, requestOptions)
-
-  const data = await response.json()
-
-  if (!response.ok) {
-    throw new Error(data.error || 'API request failed')
+  let data
+  try {
+    const response = await fetch(url, requestOptions)
+    data = await response.json()
+    if (!response.ok) {
+      throw new Error(data?.error || `API request failed with status ${response.status}`)
+    }
+  } catch (err) {
+    if (err instanceof SyntaxError) {
+      throw new Error('Invalid response from server.')
+    }
+    if (err instanceof TypeError) {
+      throw new Error('Network error or server unreachable.')
+    }
+    throw err
   }
 
   return data.data

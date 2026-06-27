@@ -1,0 +1,55 @@
+[DB] connection configuration:
+  DB_HOST=127.0.0.1
+  DB_PORT=3306
+  DB_NAME=railway
+  DB_USER=otpuser
+  DB_CONNECTION_LIMIT=10
+SMSDIGITS backend listening on http://localhost:4000
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/orders?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/orders?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/orders?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/orders?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/orders?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/orders?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/orders?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/orders?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/orders?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/orders?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] Requesting {"url":"https://smsdigits.com/api/v1/orders?api_key=ab12a6805698ad32e6310cda1bb4a3f1","authVariant":{"type":"query","name":"api_key"},"options":{"headers":{"Content-Type":"application/json"}}}
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/balance?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data
+[SMSDIGITS SERVICE] SMSDIGITS fetch error {"url":"https://smsdigits.com/api/v1/orders?api_key=ab12a6805698ad32e6310cda1bb4a3f1","err":"fetch failed"}
+[SMSDIGITS SERVICE] Falling back to mock data

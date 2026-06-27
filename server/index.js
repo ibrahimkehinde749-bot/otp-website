@@ -33,14 +33,22 @@ import {
   getNumPoolPricing,
   lookupNumPool,
 } from './service/numpoolService.js'
-
+import { ApiError, UnauthorizedError } from './service/apiError.js'
 import jwt from 'jsonwebtoken'
 
 const app = express()
-const port = process.env.PORT || 4000
+const port = Number(process.env.PORT || 4000)
 
 app.use(cors())
 app.use(express.json())
+
+app.get('/', (req, res) => {
+  res.json({ success: true, message: 'OTP backend is running' })
+})
+
+app.get('/health', (req, res) => {
+  res.json({ success: true, status: 'ok' })
+})
 
 function authMiddleware(req, res, next) {
   const auth = req.headers.authorization
@@ -61,8 +69,11 @@ function wrap(handler) {
       const result = await handler(req, res)
       res.json({ success: true, data: result })
     } catch (error) {
-        console.error('[SMSDIGITS API]', error)
-      res.status(500).json({ success: false, error: error.message })
+      console.error('[SMSDIGITS API]', error)
+      if (error instanceof ApiError) {
+        return res.status(error.status).json({ success: false, error: error.message })
+      }
+      res.status(500).json({ success: false, error: 'An unexpected server error occurred.' })
     }
   }
 }
@@ -127,6 +138,6 @@ app.post('/api/auth/logout', authMiddleware, wrap(async (req) => {
   return { loggedOut: true }
 }))
 
-app.listen(port, () => {
-  console.log(`SMSDIGITS backend listening on http://localhost:${port}`)
+app.listen(port, '0.0.0.0', () => {
+  console.log(`SMSDIGITS backend listening on http://0.0.0.0:${port}`)
 })

@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import { query, transaction } from './db.js'
+import { BadRequestError, ConflictError, UnauthorizedError } from './apiError.js'
 
 const SALT_ROUNDS = 10
 
@@ -26,30 +27,27 @@ function mapDbRowToUser(row) {
 }
 
 export async function registerUser({ fullName, email, password, phoneNumber }) {
-  if (!email || !password || !fullName) throw new Error('fullName, email and password are required')
+  if (!email || !password || !fullName) throw new BadRequestError('fullName, email and password are required')
 
   const existing = await query('SELECT id FROM users WHERE email = ? LIMIT 1', [email])
-  if (existing && existing.length > 0) throw new Error('Email already registered')
+  if (existing && existing.length > 0) throw new ConflictError('Email already registered')
 
   const hashed = await bcrypt.hash(password, SALT_ROUNDS)
   const id = crypto.randomUUID()
 
-  await query(
-    `INSERT INTO users (id, full_name, email, password, phone_number, registration_date, account_status)
-     VALUES (?, ?, ?, ?, ?, NOW(), ?)`,
-    [id, fullName, email, hashed, phoneNumber || null, 'active']
-  )
+  await transaction(async (conn) => {
+    await conn.execute(
+      `INSERT INTO users (id, full_name, email, password, phone_number, registration_date, account_status)
+       VALUES (?, ?, ?, ?, ?, NOW(), ?)`,
+      [id, fullName, email, hashed, phoneNumber || null, 'active']
+    )
+  })
 
-  const user = {
-    id,
-    fullName,
-    email,
-    phoneNumber: phoneNumber || null,
-    registrationDate: new Date().toISOString(),
-    accountStatus: 'active',
-  }
+  const savedUser = await findUserById(id)
+  if (!savedUser) throw new Error('Failed to retrieve newly created user')
 
-  return createAuthResult(user)
+  const { password: _p, ...safeUser } = savedUser
+  return createAuthResult(safeUser)
 }
 
 export async function findUserByEmail(email) {
@@ -64,9 +62,9 @@ export async function findUserById(id) {
 
 export async function authenticateUser({ email, password }) {
   const user = await findUserByEmail(email)
-  if (!user) throw new Error('Invalid credentials')
+  if (!user) throw new UnauthorizedError('Invalid credentials')
   const ok = await bcrypt.compare(password, user.password)
-  if (!ok) throw new Error('Invalid credentials')
+  if (!ok) throw new UnauthorizedError('Invalid credentials')
   const { password: _p, ...safe } = user
   return createAuthResult(safe)
 }

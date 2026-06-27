@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client.js'
+import Alert from '../components/Alert.jsx'
 
 function RegisterPage({ onRegister }) {
   const [form, setForm] = useState({ fullName: '', email: '', password: '', phoneNumber: '' })
@@ -33,7 +34,7 @@ function RegisterPage({ onRegister }) {
       onRegister(result.user, result.token)
       navigate('/app/dashboard')
     } catch (err) {
-      setError(err.message)
+      setError(err?.message || 'Registration failed. Please try again.')
     }
   }
 
@@ -41,7 +42,7 @@ function RegisterPage({ onRegister }) {
     <div className="auth-page">
       <div className="auth-card">
         <h1>Register</h1>
-        {error && <div className="alert">{error}</div>}
+        {error && <Alert>{error}</Alert>}
         <form onSubmit={handleSubmit}>
           <label>
             Full name
