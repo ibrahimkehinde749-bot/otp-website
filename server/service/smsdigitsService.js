@@ -56,7 +56,8 @@ const authVariants = [
   { type: 'header', name: 'Authorization', prefix: 'Bearer ' },
 ]
 
-import { debitWallet } from './walletService.js'
+import { query } from './db.js'
+import { debitWallet, getWalletBalance } from './walletService.js'
 
 async function request(path, options = {}) {
   // prefer SMSDIGITS env var; fall back to the old SMSCODEX key if present
@@ -168,7 +169,7 @@ function getMockPurchaseResponse() {
   }
 }
 
-export async function purchaseNumber(details) {
+export async function purchaseNumber(details, userId) {
   if (!details?.country || !details?.service) {
     throw new Error('country and service are required to purchase a number.')
   }
@@ -186,7 +187,8 @@ export async function purchaseNumber(details) {
   }
 
   try {
-    debitWallet(price, {
+    await debitWallet(price, {
+      userId,
       reference: purchaseResult.order_id,
       provider: 'purchase',
       description: 'Purchase checkout debit',
@@ -241,7 +243,11 @@ export async function cancelOrder(orderId) {
   return result || { status: 'cancelled', order_id: orderId }
 }
 
-export async function getBalance() {
+export async function getBalance(userId) {
+  if (userId) {
+    return getWalletBalance(userId)
+  }
+
   const result = await request('/balance', {
     headers: getAuthHeaders(),
   })
@@ -249,7 +255,30 @@ export async function getBalance() {
   return result || getMockBalance()
 }
 
-export async function getAllOrders() {
+export async function getAllOrders(userId) {
+  if (userId) {
+    const rows = await query(
+      `SELECT id, order_id, number, country, service, status, price, created_at, expires_at
+       FROM orders
+       WHERE user_id = ?
+       ORDER BY created_at DESC`,
+      [userId]
+    )
+
+    return {
+      orders: rows.map((row) => ({
+        id: row.order_id || row.id,
+        number: row.number,
+        country: row.country,
+        service: row.service,
+        status: row.status,
+        price: Number(row.price),
+        created_at: row.created_at,
+        expires_at: row.expires_at,
+      })),
+    }
+  }
+
   const result = await request('/orders', {
     headers: getAuthHeaders(),
   })

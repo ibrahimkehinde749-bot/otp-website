@@ -38,19 +38,19 @@ function DashboardPage({ user, onSessionExpired }) {
   return (
     <div>
       <h2>Dashboard</h2>
-      <p>Welcome back, {profile?.fullName || profile?.email || 'user'}.</p>
+      <p>Welcome back, {profile?.fullName || profile?.email || 'N/A'}.</p>
       {error && <div className="alert">{error}</div>}
       <div className="info-grid">
         <div className="info-card">
           <h3>Account</h3>
-          <p>Email: {profile?.email || 'user@example.com'}</p>
-          <p>Status: {profile?.accountStatus || 'active'}</p>
+          <p>Email: {profile?.email || 'N/A'}</p>
+          <p>Status: {profile?.accountStatus || 'N/A'}</p>
           <p>Registered: {profile?.registrationDate ? new Date(profile.registrationDate).toLocaleDateString() : 'N/A'}</p>
         </div>
         <div className="info-card">
           <h3>Overview</h3>
-          <p>Wallet balance: ₦{loading ? '...' : (balance ?? 0).toFixed(2)}</p>
-          <p>Orders: {loading ? '...' : orders.length} active</p>
+          <p>Wallet balance: ₦{loading ? '...' : Number(balance ?? 0).toFixed(2)}</p>
+          <p>Orders: {loading ? '...' : orders.length}</p>
         </div>
       </div>
     </div>
