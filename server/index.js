@@ -18,6 +18,11 @@ import {
   getWalletTransactions,
   initFlutterwavePayment,
   verifyFlutterwavePayment,
+  getWalletFundingBankDetails,
+  submitWalletFundingRequest,
+  getWalletFundingRequests,
+  approveWalletFundingRequest,
+  rejectWalletFundingRequest,
 } from './service/walletService.js'
 import {
   registerUser,
@@ -42,7 +47,26 @@ import { runMigrations } from './migrate.js'
 export const app = express()
 const port = Number(process.env.PORT || process.env.RAILWAY_PORT) || 4000
 
-app.use(cors())
+const allowedOrigins = [
+  'https://rhverified.netlify.app',
+  'https://www.rhverified.netlify.app',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+]
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl)
+    if (!origin) return callback(null, true)
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true)
+    }
+    return callback(new Error('CORS policy: This origin is not allowed.'), false)
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}))
 app.use(express.json())
 
 app.get('/health', (req, res) => {
@@ -53,13 +77,15 @@ app.get('/', (req, res) => {
   res.json({ success: true, message: 'OTP backend is running' })
 })
 
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   const auth = req.headers.authorization
   if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ success: false, error: 'Missing token' })
   const token = auth.split(' ')[1]
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret')
-    req.user = payload
+    const user = await findUserById(payload.id)
+    if (!user) return res.status(401).json({ success: false, error: 'Invalid token' })
+    req.user = { id: user.id, email: user.email, role: user.role }
     next()
   } catch (err) {
     return res.status(401).json({ success: false, error: 'Invalid token' })
@@ -98,8 +124,23 @@ app.post('/api/orders/:orderId/cancel', wrap(async (req) => await cancelOrder(re
 
 app.get('/api/wallet', authMiddleware, wrap(async (req) => getWalletBalance(req.user.id)))
 app.get('/api/wallet/transactions', authMiddleware, wrap(async (req) => getWalletTransactions(req.user.id)))
+app.get('/api/wallet/funding-bank-details', authMiddleware, wrap(async () => getWalletFundingBankDetails()))
+app.get('/api/wallet/funding-requests', authMiddleware, wrap(async (req) => getWalletFundingRequests({ userId: req.user.id, isAdmin: req.user.role === 'admin' })))
+app.post('/api/wallet/funding-request', authMiddleware, wrap(async (req) => submitWalletFundingRequest({ ...req.body, userId: req.user.id })))
 app.post('/api/wallet/deposit', authMiddleware, wrap(async (req) => await initFlutterwavePayment({ ...req.body, userId: req.user.id })))
 app.post('/api/wallet/verify', wrap(async (req) => await verifyFlutterwavePayment(req.body)))
+app.post('/api/admin/wallet/funding-requests/:id/approve', authMiddleware, wrap(async (req) => {
+  if (req.user.role !== 'admin') {
+    throw new ApiError('Only admins can approve funding requests.', 403)
+  }
+  return approveWalletFundingRequest(req.params.id, { adminUserId: req.user.id })
+}))
+app.post('/api/admin/wallet/funding-requests/:id/reject', authMiddleware, wrap(async (req) => {
+  if (req.user.role !== 'admin') {
+    throw new ApiError('Only admins can reject funding requests.', 403)
+  }
+  return rejectWalletFundingRequest(req.params.id)
+}))
 
 app.get('/api/numpool/balance', wrap(async () => await getNumPoolBalance()))
 app.get('/api/numpool/services', wrap(async () => await getNumPoolServices()))
@@ -137,7 +178,6 @@ app.put('/api/user/update', authMiddleware, wrap(async (req) => {
 }))
 
 app.post('/api/auth/logout', authMiddleware, wrap(async (req) => {
-  // stateless JWT: client should discard token. We return success.
   return { loggedOut: true }
 }))
 
@@ -179,7 +219,11 @@ export async function startApp() {
   })
 
   try {
-    await runMigrations()
+    if (process.env.USE_MOCK_DATA !== 'true') {
+      await runMigrations()
+    } else {
+      console.log('[SERVER] Skipping migrations (USE_MOCK_DATA=true)')
+    }
   } catch (err) {
     console.error('[SERVER] Migration failed:', err)
     process.exit(1)

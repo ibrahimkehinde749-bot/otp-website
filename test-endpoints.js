@@ -1,5 +1,5 @@
 async function testEndpoints() {
-  const baseUrl = 'http://localhost:4000'
+  const baseUrl = process.env.API_BASE_URL || 'https://otp-website-production.up.railway.app'
 
   console.log('Testing SMSDIGITS API endpoints...\n')
 

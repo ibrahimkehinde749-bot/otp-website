@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://otp-website-production.up.railway.app/api'
+const API_BASE_URL = configuredBaseUrl.endsWith('/api') ? configuredBaseUrl : `${configuredBaseUrl}/api`
 
 function getAuthToken() {
   const stored = localStorage.getItem('otp-auth')
@@ -96,6 +97,12 @@ export const api = {
   wallet: {
     get: () => apiCall('/wallet'),
     getTransactions: () => apiCall('/wallet/transactions'),
+    getBankDetails: () => apiCall('/wallet/funding-bank-details'),
+    getFundingRequests: () => apiCall('/wallet/funding-requests'),
+    fund: (details) => apiCall('/wallet/funding-request', {
+      method: 'POST',
+      body: JSON.stringify(details),
+    }),
     deposit: (details) => apiCall('/wallet/deposit', {
       method: 'POST',
       body: JSON.stringify(details),
@@ -104,6 +111,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(details),
     }),
+    admin: {
+      getFundingRequests: () => apiCall('/wallet/funding-requests'),
+      approve: (id) => apiCall(`/admin/wallet/funding-requests/${id}/approve`, { method: 'POST' }),
+      reject: (id) => apiCall(`/admin/wallet/funding-requests/${id}/reject`, { method: 'POST' }),
+    },
   },
   numpool: {
     balance: {
