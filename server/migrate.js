@@ -1,6 +1,9 @@
 import fs from 'fs'
 import path from 'path'
-import { query } from './service/db.js'
+import { fileURLToPath } from 'url'
+import { query, pool } from './service/db.js'
+
+const __filename = fileURLToPath(import.meta.url)
 
 const {
   DB_HOST,
@@ -24,7 +27,7 @@ if (missingEnv.length > 0) {
 
 const migrationsDir = path.resolve(process.cwd(), 'migrations')
 
-async function runMigrations() {
+export async function runMigrations({ closePoolAfter = false } = {}) {
   if (!fs.existsSync(migrationsDir)) {
     throw new Error(`Migrations directory not found: ${migrationsDir}`)
   }
@@ -51,8 +54,7 @@ async function runMigrations() {
       console.error(sql)
       console.error('--- SQL END ---')
       console.error('Error object:', err)
-      // If table already exists or migration is idempotent, skip
-      const msg = (err && err.message) ? err.message : ''
+      const msg = err?.message || ''
       if (err && (err.code === 'ER_TABLE_EXISTS_ERROR' || /already exists/i.test(msg))) {
         console.log(`Skipping ${file} — already exists.`)
         continue
@@ -62,11 +64,29 @@ async function runMigrations() {
   }
 
   console.log('All migrations completed successfully.')
+
+  if (closePoolAfter) {
+    await pool.end()
+  }
 }
 
-runMigrations().catch((err) => {
-  console.error('Migration failed:', err)
-  console.error(err.message)
-  console.error(err.stack)
-  process.exit(1)
-})
+async function main() {
+  try {
+    await runMigrations({ closePoolAfter: true })
+    process.exit(0)
+  } catch (err) {
+    console.error('Migration failed:', err)
+    console.error(err.message)
+    console.error(err.stack)
+    try {
+      await pool.end()
+    } catch (closeErr) {
+      console.error('Failed to close DB pool after migration error:', closeErr)
+    }
+    process.exit(1)
+  }
+}
+
+if (process.argv[1] === __filename) {
+  main()
+}

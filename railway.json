@@ -4,6 +4,6 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "npm run migrate && node server/index.js"
+    "startCommand": "node server/index.js"
   }
 }

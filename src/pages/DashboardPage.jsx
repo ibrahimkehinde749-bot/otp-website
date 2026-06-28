@@ -14,7 +14,7 @@ function DashboardPage({ user, onSessionExpired }) {
         setLoading(true)
         const profileData = await api.user.profile()
         const [balanceData, ordersData] = await Promise.all([
-          api.balance.get().catch(() => ({ balance: 0 })),
+          api.wallet.get().catch(() => ({ balance: 0, currency: 'NGN' })),
           api.orders.getAll().catch(() => ({ orders: [] })),
         ])
         setProfile(profileData)

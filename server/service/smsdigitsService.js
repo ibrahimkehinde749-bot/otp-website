@@ -248,11 +248,7 @@ export async function getBalance(userId) {
     return getWalletBalance(userId)
   }
 
-  const result = await request('/balance', {
-    headers: getAuthHeaders(),
-  })
-
-  return result || getMockBalance()
+  return { balance: 0, currency: 'NGN' }
 }
 
 export async function getAllOrders(userId) {
@@ -279,11 +275,7 @@ export async function getAllOrders(userId) {
     }
   }
 
-  const result = await request('/orders', {
-    headers: getAuthHeaders(),
-  })
-
-  return result || getMockOrdersList()
+  return { orders: [] }
 }
 
 export function getCountries() {

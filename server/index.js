@@ -1,4 +1,6 @@
 import 'dotenv/config'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import express from 'express'
 import cors from 'cors'
 import {
@@ -33,11 +35,12 @@ import {
   getNumPoolPricing,
   lookupNumPool,
 } from './service/numpoolService.js'
-import { ApiError, UnauthorizedError } from './service/apiError.js'
+import { ApiError } from './service/apiError.js'
 import jwt from 'jsonwebtoken'
+import { runMigrations } from './migrate.js'
 
-const app = express()
-const port = Number(process.env.PORT || 4000)
+export const app = express()
+const port = Number(process.env.PORT || process.env.RAILWAY_PORT) || 4000
 
 app.use(cors())
 app.use(express.json())
@@ -78,8 +81,8 @@ function wrap(handler) {
   }
 }
 
-app.get('/api/balance', wrap(async () => await getBalance()))
-app.get('/api/orders', wrap(async () => await getAllOrders()))
+app.get('/api/balance', authMiddleware, wrap(async (req) => await getBalance(req.user.id)))
+app.get('/api/orders', authMiddleware, wrap(async (req) => await getAllOrders(req.user.id)))
 app.get('/api/countries', wrap(async (req) => {
   const countries = await getNumPoolCountries(req.query.service)
   return countries.map(({ id, name, price }) => ({ id, name, price }))
@@ -88,14 +91,14 @@ app.get('/api/services', wrap(async () => {
   const services = await getServices()
   return services.map(({ code, id, name }) => ({ id: id ?? code, name }))
 }))
-app.post('/api/purchase', wrap(async (req) => await purchaseNumber(req.body)))
-app.get('/api/orders/:orderId', wrap(async (req) => await getOrder(req.params.orderId)))
+app.post('/api/purchase', authMiddleware, wrap(async (req) => await purchaseNumber(req.body, req.user.id)))
+app.get('/api/orders/:orderId', authMiddleware, wrap(async (req) => await getOrder(req.params.orderId)))
 app.post('/api/orders/:orderId/complete', wrap(async (req) => await completeOrder(req.params.orderId)))
 app.post('/api/orders/:orderId/cancel', wrap(async (req) => await cancelOrder(req.params.orderId)))
 
-app.get('/api/wallet', wrap(async () => getWalletBalance()))
-app.get('/api/wallet/transactions', wrap(async () => getWalletTransactions()))
-app.post('/api/wallet/deposit', wrap(async (req) => await initFlutterwavePayment(req.body)))
+app.get('/api/wallet', authMiddleware, wrap(async (req) => getWalletBalance(req.user.id)))
+app.get('/api/wallet/transactions', authMiddleware, wrap(async (req) => getWalletTransactions(req.user.id)))
+app.post('/api/wallet/deposit', authMiddleware, wrap(async (req) => await initFlutterwavePayment({ ...req.body, userId: req.user.id })))
 app.post('/api/wallet/verify', wrap(async (req) => await verifyFlutterwavePayment(req.body)))
 
 app.get('/api/numpool/balance', wrap(async () => await getNumPoolBalance()))
@@ -139,7 +142,11 @@ app.post('/api/auth/logout', authMiddleware, wrap(async (req) => {
 }))
 
 function startServer(portToListen, host = '0.0.0.0', attempt = 1) {
-  const server = app.listen(portToListen, host, () => {
+  console.log(`[SERVER] Attempting to listen on ${host}:${portToListen} (attempt ${attempt})`)
+
+  const server = app.listen(portToListen, host)
+
+  server.on('listening', () => {
     console.log(`SMSDIGITS backend listening on http://${host}:${portToListen}`)
   })
 
@@ -159,4 +166,30 @@ function startServer(portToListen, host = '0.0.0.0', attempt = 1) {
   })
 }
 
-startServer(port)
+export async function startApp() {
+  console.log('[SERVER] Starting application')
+
+  process.on('unhandledRejection', (reason) => {
+    console.error('[SERVER] Unhandled rejection:', reason)
+  })
+
+  process.on('uncaughtException', (error) => {
+    console.error('[SERVER] Uncaught exception:', error)
+    process.exit(1)
+  })
+
+  try {
+    await runMigrations()
+  } catch (err) {
+    console.error('[SERVER] Migration failed:', err)
+    process.exit(1)
+  }
+
+  startServer(port)
+}
+
+const isMainModule = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+
+if (isMainModule) {
+  startApp()
+}

@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "server": "node server/index.js",
     "migrate": "node server/migrate.js",
-    "start": "npm run migrate && node server/index.js"
+    "start": "node server/index.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.0",
