@@ -42,12 +42,12 @@ const port = Number(process.env.PORT || 4000)
 app.use(cors())
 app.use(express.json())
 
-app.get('/', (req, res) => {
-  res.json({ success: true, message: 'OTP backend is running' })
-})
-
 app.get('/health', (req, res) => {
   res.json({ success: true, status: 'ok' })
+})
+
+app.get('/', (req, res) => {
+  res.json({ success: true, message: 'OTP backend is running' })
 })
 
 function authMiddleware(req, res, next) {
@@ -78,8 +78,8 @@ function wrap(handler) {
   }
 }
 
-app.get('/api/balance', authMiddleware, wrap(async (req) => await getBalance(req.user?.id)))
-app.get('/api/orders', authMiddleware, wrap(async (req) => await getAllOrders(req.user?.id)))
+app.get('/api/balance', wrap(async () => await getBalance()))
+app.get('/api/orders', wrap(async () => await getAllOrders()))
 app.get('/api/countries', wrap(async (req) => {
   const countries = await getNumPoolCountries(req.query.service)
   return countries.map(({ id, name, price }) => ({ id, name, price }))
@@ -88,15 +88,15 @@ app.get('/api/services', wrap(async () => {
   const services = await getServices()
   return services.map(({ code, id, name }) => ({ id: id ?? code, name }))
 }))
-app.post('/api/purchase', authMiddleware, wrap(async (req) => await purchaseNumber(req.body, req.user?.id)))
+app.post('/api/purchase', wrap(async (req) => await purchaseNumber(req.body)))
 app.get('/api/orders/:orderId', wrap(async (req) => await getOrder(req.params.orderId)))
 app.post('/api/orders/:orderId/complete', wrap(async (req) => await completeOrder(req.params.orderId)))
 app.post('/api/orders/:orderId/cancel', wrap(async (req) => await cancelOrder(req.params.orderId)))
 
-app.get('/api/wallet', authMiddleware, wrap(async (req) => getWalletBalance(req.user?.id)))
-app.get('/api/wallet/transactions', authMiddleware, wrap(async (req) => getWalletTransactions(req.user?.id)))
-app.post('/api/wallet/deposit', authMiddleware, wrap(async (req) => await initFlutterwavePayment({ ...req.body, userId: req.user?.id })))
-app.post('/api/wallet/verify', authMiddleware, wrap(async (req) => await verifyFlutterwavePayment({ ...req.body, userId: req.user?.id })))
+app.get('/api/wallet', wrap(async () => getWalletBalance()))
+app.get('/api/wallet/transactions', wrap(async () => getWalletTransactions()))
+app.post('/api/wallet/deposit', wrap(async (req) => await initFlutterwavePayment(req.body)))
+app.post('/api/wallet/verify', wrap(async (req) => await verifyFlutterwavePayment(req.body)))
 
 app.get('/api/numpool/balance', wrap(async () => await getNumPoolBalance()))
 app.get('/api/numpool/services', wrap(async () => await getNumPoolServices()))
@@ -138,6 +138,25 @@ app.post('/api/auth/logout', authMiddleware, wrap(async (req) => {
   return { loggedOut: true }
 }))
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`SMSDIGITS backend listening on http://0.0.0.0:${port}`)
-})
+function startServer(portToListen, host = '0.0.0.0', attempt = 1) {
+  const server = app.listen(portToListen, host, () => {
+    console.log(`SMSDIGITS backend listening on http://${host}:${portToListen}`)
+  })
+
+  server.on('error', (error) => {
+    if (error && error.code === 'EADDRINUSE') {
+      const nextAttempt = attempt + 1
+      const maxAttempts = 10
+      if (nextAttempt <= maxAttempts) {
+        console.warn(`[SERVER] Port ${portToListen} is busy. Retrying in 2s (attempt ${nextAttempt}/${maxAttempts})...`)
+        setTimeout(() => startServer(portToListen, host, nextAttempt), 2000)
+        return
+      }
+    }
+
+    console.error('[SERVER] Failed to start:', error)
+    process.exit(1)
+  })
+}
+
+startServer(port)
