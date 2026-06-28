@@ -14,6 +14,7 @@ function Layout({ user, onLogout }) {
           <Link to="wallet">Wallet</Link>
           <Link to="purchase">Purchase Number</Link>
           <Link to="orders">Orders</Link>
+          {user?.role === 'admin' && <Link to="admin/wallet-funding">Admin</Link>}
         </nav>
         <button className="ghost-button" onClick={onLogout}>Logout</button>
       </aside>

@@ -7,7 +7,7 @@ import { BadRequestError, ConflictError, UnauthorizedError } from './apiError.js
 const SALT_ROUNDS = 10
 
 function createAuthResult(user) {
-  const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET || 'dev-secret', { expiresIn: '7d' })
+  const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET || 'dev-secret', { expiresIn: '7d' })
   return { token, user }
 }
 
@@ -21,6 +21,8 @@ function mapDbRowToUser(row) {
     phoneNumber: row.phone_number,
     registrationDate: row.registration_date,
     accountStatus: row.account_status,
+    role: row.role,
+    walletBalance: Number(row.wallet_balance || 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
@@ -34,12 +36,15 @@ export async function registerUser({ fullName, email, password, phoneNumber }) {
 
   const hashed = await bcrypt.hash(password, SALT_ROUNDS)
   const id = crypto.randomUUID()
+  const normalizedEmail = String(email).trim().toLowerCase()
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
+  const role = adminEmail && normalizedEmail === adminEmail ? 'admin' : 'user'
 
   await transaction(async (conn) => {
     await conn.execute(
-      `INSERT INTO users (id, full_name, email, password, phone_number, registration_date, account_status)
-       VALUES (?, ?, ?, ?, ?, NOW(), ?)`,
-      [id, fullName, email, hashed, phoneNumber || null, 'active']
+      `INSERT INTO users (id, full_name, email, password, phone_number, registration_date, account_status, wallet_balance, role)
+       VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?)`,
+      [id, fullName, email, hashed, phoneNumber || null, 'active', '0.00', role]
     )
   })
 

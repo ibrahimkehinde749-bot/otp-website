@@ -1,5 +1,6 @@
 import 'dotenv/config'
-import { query } from './db.js'
+import crypto from 'crypto'
+import { query, transaction } from './db.js'
 
 const walletState = {
   balance: 0,
@@ -39,6 +40,13 @@ function formatDbTransaction(row) {
   }
 }
 
+export function validateFundingAmount(amount) {
+  if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
+    throw new Error('Amount must be a positive number.')
+  }
+  return Number(amount.toFixed(2))
+}
+
 export async function getWalletBalance(userId) {
   if (!userId) {
     return {
@@ -47,19 +55,11 @@ export async function getWalletBalance(userId) {
     }
   }
 
-  const rows = await query(
-    `SELECT COALESCE(SUM(CASE
-      WHEN type = 'credit' THEN amount
-      WHEN type = 'debit' THEN -amount
-      ELSE 0
-    END), 0) AS balance
-    FROM wallet_transactions
-    WHERE user_id = ? AND status = 'completed'`,
-    [userId]
-  )
+  const rows = await query('SELECT wallet_balance FROM users WHERE id = ? LIMIT 1', [userId])
+  const balance = Number(rows?.[0]?.wallet_balance || 0)
 
   return {
-    balance: Number(rows?.[0]?.balance || 0),
+    balance,
     currency: 'NGN',
   }
 }
@@ -80,87 +80,181 @@ export async function getWalletTransactions(userId) {
   return rows.map(formatDbTransaction)
 }
 
-export async function creditWallet(amount, { userId, reference, provider = 'manual', description = 'Wallet top-up' } = {}) {
-  if (typeof amount !== 'number' || amount <= 0) {
-    throw new Error('Amount must be a positive number.')
-  }
+export async function creditWallet(amount, { userId, reference, provider = 'manual', description = 'Wallet top-up', status = 'completed' } = {}) {
+  const normalizedAmount = validateFundingAmount(amount)
 
   if (userId) {
-    const id = `TX-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
-    await query(
-      `INSERT INTO wallet_transactions (id, user_id, amount, type, status, reference, provider, description, metadata, created_at)
-       VALUES (?, ?, ?, 'credit', 'completed', ?, ?, ?, ?, NOW())`,
-      [id, userId, amount.toFixed(2), reference || null, provider, description, null]
-    )
+    const id = crypto.randomUUID()
+    await transaction(async (conn) => {
+      await conn.execute(
+        `UPDATE users SET wallet_balance = COALESCE(wallet_balance, 0) + ? WHERE id = ?`,
+        [normalizedAmount.toFixed(2), userId]
+      )
+      await conn.execute(
+        `INSERT INTO wallet_transactions (id, user_id, amount, type, status, reference, provider, description, metadata, created_at)
+         VALUES (?, ?, ?, 'credit', ?, ?, ?, ?, ?, NOW())`,
+        [id, userId, normalizedAmount.toFixed(2), status, reference || null, provider, description, null]
+      )
+    })
     return {
       id,
       reference,
       provider,
-      amount,
+      amount: normalizedAmount,
       currency: 'NGN',
       type: 'credit',
-      status: 'completed',
+      status,
       description,
       extra: null,
       created_at: new Date().toISOString(),
     }
   }
 
-  walletState.balance += amount
+  walletState.balance += normalizedAmount
   return createTransaction({
-    amount,
+    amount: normalizedAmount,
     type: 'credit',
-    status: 'completed',
+    status,
     reference,
     provider,
     description,
   })
 }
 
-export async function debitWallet(amount, { userId, reference, provider = 'purchase', description = 'Purchase debit' } = {}) {
-  if (typeof amount !== 'number' || amount <= 0) {
-    throw new Error('Amount must be a positive number.')
-  }
+export async function debitWallet(amount, { userId, reference, provider = 'purchase', description = 'Purchase debit', status = 'completed' } = {}) {
+  const normalizedAmount = validateFundingAmount(amount)
 
   if (userId) {
     const current = await getWalletBalance(userId)
-    if (current.balance < amount) {
+    if (current.balance < normalizedAmount) {
       throw new Error('Insufficient wallet balance.')
     }
 
-    const id = `TX-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
-    await query(
-      `INSERT INTO wallet_transactions (id, user_id, amount, type, status, reference, provider, description, metadata, created_at)
-       VALUES (?, ?, ?, 'debit', 'completed', ?, ?, ?, ?, NOW())`,
-      [id, userId, amount.toFixed(2), reference || null, provider, description, null]
-    )
+    const id = crypto.randomUUID()
+    await transaction(async (conn) => {
+      await conn.execute(
+        `UPDATE users SET wallet_balance = COALESCE(wallet_balance, 0) - ? WHERE id = ?`,
+        [normalizedAmount.toFixed(2), userId]
+      )
+      await conn.execute(
+        `INSERT INTO wallet_transactions (id, user_id, amount, type, status, reference, provider, description, metadata, created_at)
+         VALUES (?, ?, ?, 'debit', ?, ?, ?, ?, ?, NOW())`,
+        [id, userId, normalizedAmount.toFixed(2), status, reference || null, provider, description, null]
+      )
+    })
     return {
       id,
       reference,
       provider,
-      amount,
+      amount: normalizedAmount,
       currency: 'NGN',
       type: 'debit',
-      status: 'completed',
+      status,
       description,
       extra: null,
       created_at: new Date().toISOString(),
     }
   }
 
-  if (walletState.balance < amount) {
+  if (walletState.balance < normalizedAmount) {
     throw new Error('Insufficient wallet balance.')
   }
 
-  walletState.balance -= amount
+  walletState.balance -= normalizedAmount
   return createTransaction({
-    amount,
+    amount: normalizedAmount,
     type: 'debit',
-    status: 'completed',
+    status,
     reference,
     provider,
     description,
   })
+}
+
+export async function getWalletFundingBankDetails() {
+  return {
+    bankName: process.env.WALLET_BANK_NAME || 'Opay',
+    accountName: process.env.WALLET_ACCOUNT_NAME || 'Ibrahim kehinde',
+    accountNumber: process.env.WALLET_ACCOUNT_NUMBER || '7088755649',
+    instructions: process.env.WALLET_BANK_INSTRUCTIONS || 'Transfer the amount to the account above, then click “I Have Paid” to submit your funding request.',
+  }
+}
+
+export async function submitWalletFundingRequest({ userId, amount, paymentReference }) {
+  const normalizedAmount = validateFundingAmount(amount)
+  const id = crypto.randomUUID()
+
+  await query(
+    `INSERT INTO wallet_funding_requests (id, user_id, amount, payment_reference, payment_status, created_at)
+     VALUES (?, ?, ?, ?, 'Pending', NOW())`,
+    [id, userId, normalizedAmount.toFixed(2), paymentReference || null]
+  )
+
+  return {
+    id,
+    userId,
+    amount: normalizedAmount,
+    paymentReference: paymentReference || null,
+    paymentStatus: 'Pending',
+    createdAt: new Date().toISOString(),
+  }
+}
+
+export async function getWalletFundingRequests({ userId, isAdmin = false } = {}) {
+  const whereClause = isAdmin ? '' : 'WHERE r.user_id = ?'
+  const params = isAdmin ? [] : [userId]
+  const rows = await query(
+    `SELECT r.id, r.user_id, r.amount, r.payment_reference, r.payment_status, r.created_at, u.full_name, u.email
+     FROM wallet_funding_requests r
+     LEFT JOIN users u ON u.id = r.user_id
+     ${whereClause}
+     ORDER BY r.created_at DESC`,
+    params
+  )
+
+  return rows.map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    amount: Number(row.amount),
+    paymentReference: row.payment_reference,
+    paymentStatus: row.payment_status,
+    createdAt: row.created_at,
+    user: row.full_name ? { fullName: row.full_name, email: row.email } : null,
+  }))
+}
+
+export async function approveWalletFundingRequest(requestId, { adminUserId } = {}) {
+  if (!requestId) throw new Error('Request ID is required.')
+  const row = await query('SELECT * FROM wallet_funding_requests WHERE id = ? LIMIT 1', [requestId])
+  const request = row?.[0]
+  if (!request) throw new Error('Funding request not found.')
+  if (request.payment_status !== 'Pending') throw new Error('This funding request has already been processed.')
+
+  const amount = Number(request.amount)
+  const id = crypto.randomUUID()
+
+  await transaction(async (conn) => {
+    await conn.execute('UPDATE wallet_funding_requests SET payment_status = ?, updated_at = NOW() WHERE id = ?', ['Approved', requestId])
+    await conn.execute('UPDATE users SET wallet_balance = COALESCE(wallet_balance, 0) + ? WHERE id = ?', [amount.toFixed(2), request.user_id])
+    await conn.execute(
+      `INSERT INTO wallet_transactions (id, user_id, amount, type, status, reference, provider, description, metadata, created_at)
+       VALUES (?, ?, ?, 'credit', 'completed', ?, 'manual', ?, ?, NOW())`,
+      [id, request.user_id, amount.toFixed(2), `funding-${requestId}`, 'Manual wallet funding approved', null]
+    )
+  })
+
+  return { id: request.id, paymentStatus: 'Approved', amount }
+}
+
+export async function rejectWalletFundingRequest(requestId) {
+  if (!requestId) throw new Error('Request ID is required.')
+  const row = await query('SELECT * FROM wallet_funding_requests WHERE id = ? LIMIT 1', [requestId])
+  const request = row?.[0]
+  if (!request) throw new Error('Funding request not found.')
+  if (request.payment_status !== 'Pending') throw new Error('This funding request has already been processed.')
+
+  await query('UPDATE wallet_funding_requests SET payment_status = ?, updated_at = NOW() WHERE id = ?', ['Rejected', requestId])
+  return { id: request.id, paymentStatus: 'Rejected' }
 }
 
 function getFlutterwaveSecret() {
@@ -180,14 +274,12 @@ function formatTxRef() {
 }
 
 export async function initFlutterwavePayment({ amount, currency = 'USD', email = 'user@example.com', fullname = 'Wallet User', phone_number = null, userId }) {
-  if (typeof amount !== 'number' || amount <= 0) {
-    throw new Error('Amount must be a positive number.')
-  }
+  const normalizedAmount = validateFundingAmount(amount)
 
   const tx_ref = formatTxRef()
   const payload = {
     tx_ref,
-    amount: amount.toFixed(2),
+    amount: normalizedAmount.toFixed(2),
     currency,
     redirect_url: process.env.FLUTTERWAVE_REDIRECT_URL || 'http://localhost:5173/app/wallet/callback',
     customer: {
@@ -202,7 +294,7 @@ export async function initFlutterwavePayment({ amount, currency = 'USD', email =
   }
 
   if (process.env.USE_MOCK_DATA === 'true' && !process.env.FLUTTERWAVE_SECRET_KEY) {
-    const transaction = await creditWallet(amount, {
+    const transaction = await creditWallet(normalizedAmount, {
       userId,
       reference: tx_ref,
       provider: 'flutterwave-mock',

@@ -10,24 +10,41 @@ const {
   DB_NAME,
   DB_USER,
   DB_PASSWORD,
+  MYSQLHOST,
+  MYSQL_DATABASE,
+  MYSQLUSER,
+  MYSQLPASSWORD,
 } = process.env
 
+const host = DB_HOST || MYSQLHOST
+const database = DB_NAME || MYSQL_DATABASE
+const user = DB_USER || MYSQLUSER
+const password = DB_PASSWORD || MYSQLPASSWORD
+
 const missingEnv = []
-if (!DB_HOST) missingEnv.push('DB_HOST')
-if (!DB_NAME) missingEnv.push('DB_NAME')
-if (!DB_USER) missingEnv.push('DB_USER')
-if (!DB_PASSWORD) missingEnv.push('DB_PASSWORD')
+if (!host) missingEnv.push('DB_HOST or MYSQLHOST')
+if (!database) missingEnv.push('DB_NAME or MYSQL_DATABASE')
+if (!user) missingEnv.push('DB_USER or MYSQLUSER')
+if (!password) missingEnv.push('DB_PASSWORD or MYSQLPASSWORD')
 
 if (missingEnv.length > 0) {
   throw new Error(
     `[DB] Missing required environment variables for migration: ${missingEnv.join(', ')}. ` +
-    'Please set DB_HOST and DB_PASSWORD before running migrations.'
+      'Please set DB_HOST/DB_NAME/DB_USER/DB_PASSWORD or MYSQLHOST/MYSQL_DATABASE/MYSQLUSER/MYSQLPASSWORD before running migrations.'
   )
 }
 
 const migrationsDir = path.resolve(process.cwd(), 'migrations')
 
 export async function runMigrations({ closePoolAfter = false } = {}) {
+  if (process.env.USE_MOCK_DATA === 'true') {
+    console.log('[MIGRATIONS] USE_MOCK_DATA=true, skipping database migrations.')
+    if (closePoolAfter) {
+      await pool.end()
+    }
+    return
+  }
+
   if (!fs.existsSync(migrationsDir)) {
     throw new Error(`Migrations directory not found: ${migrationsDir}`)
   }

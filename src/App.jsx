@@ -5,6 +5,8 @@ import LoginPage from './pages/LoginPage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
 import WalletPage from './pages/WalletPage.jsx'
+import WalletFundingPage from './pages/WalletFundingPage.jsx'
+import AdminFundingPage from './pages/AdminFundingPage.jsx'
 import WalletCallbackPage from './pages/WalletCallbackPage.jsx'
 import PurchaseNumberPage from './pages/PurchaseNumberPage.jsx'
 import OrdersPage from './pages/OrdersPage.jsx'
@@ -78,10 +80,12 @@ function App() {
       <Route path="/app" element={<Layout user={auth.user} onLogout={clearSession} />}>
         <Route index element={auth.user ? <Navigate to="dashboard" /> : <Navigate to="/login" />} />
         <Route path="dashboard" element={<DashboardPage user={auth.user} onSessionExpired={clearSession} />} />
-        <Route path="wallet" element={<WalletPage />} />
+        <Route path="wallet" element={<WalletPage user={auth.user} />} />
+        <Route path="wallet/fund" element={<WalletFundingPage user={auth.user} />} />
         <Route path="wallet/callback" element={<WalletCallbackPage />} />
         <Route path="purchase" element={<PurchaseNumberPage />} />
         <Route path="orders" element={<OrdersPage />} />
+        <Route path="admin/wallet-funding" element={auth.user?.role === 'admin' ? <AdminFundingPage user={auth.user} /> : <Navigate to="/app/dashboard" />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" />} />
     </Routes>

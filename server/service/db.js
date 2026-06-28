@@ -3,32 +3,43 @@ import mysql from 'mysql2/promise'
 
 const {
   DB_HOST,
-  DB_PORT = '3306',
+  DB_PORT,
   DB_NAME,
   DB_USER,
   DB_PASSWORD,
   DB_CONNECTION_LIMIT = '10',
+  MYSQLHOST,
+  MYSQLPORT,
+  MYSQL_DATABASE,
+  MYSQLUSER,
+  MYSQLPASSWORD,
 } = process.env
 
+const host = DB_HOST || MYSQLHOST
+const port = DB_PORT || MYSQLPORT || '3306'
+const database = DB_NAME || MYSQL_DATABASE
+const user = DB_USER || MYSQLUSER
+const password = DB_PASSWORD || MYSQLPASSWORD
+
 console.log('[DB] connection configuration:')
-console.log(`  DB_HOST=${DB_HOST || '<not set>'}`)
-console.log(`  DB_PORT=${DB_PORT}`)
-console.log(`  DB_NAME=${DB_NAME}`)
-console.log(`  DB_USER=${DB_USER}`)
+console.log(`  DB_HOST=${host || '<not set>'}`)
+console.log(`  DB_PORT=${port}`)
+console.log(`  DB_NAME=${database || '<not set>'}`)
+console.log(`  DB_USER=${user || '<not set>'}`)
 console.log(`  DB_CONNECTION_LIMIT=${DB_CONNECTION_LIMIT}`)
 
 const missingEnv = []
-if (!DB_HOST) {
-  missingEnv.push('DB_HOST')
+if (!host) {
+  missingEnv.push('DB_HOST or MYSQLHOST')
 }
-if (!DB_NAME) {
-  missingEnv.push('DB_NAME')
+if (!database) {
+  missingEnv.push('DB_NAME or MYSQL_DATABASE')
 }
-if (!DB_USER) {
-  missingEnv.push('DB_USER')
+if (!user) {
+  missingEnv.push('DB_USER or MYSQLUSER')
 }
-if (!DB_PASSWORD) {
-  missingEnv.push('DB_PASSWORD')
+if (!password) {
+  missingEnv.push('DB_PASSWORD or MYSQLPASSWORD')
 }
 
 if (missingEnv.length > 0) {
@@ -39,20 +50,21 @@ if (missingEnv.length > 0) {
 }
 
 export const pool = mysql.createPool({
-  host: DB_HOST,
-  port: Number(DB_PORT),
-  user: DB_USER,
-  password: DB_PASSWORD,
-  database: DB_NAME,
+  host,
+  port: Number(port),
+  user,
+  password,
+  database,
   waitForConnections: true,
   connectionLimit: Number(DB_CONNECTION_LIMIT),
   queueLimit: 0,
   decimalNumbers: true,
+  multipleStatements: true,
 })
 
 export async function query(sql, params = []) {
   try {
-    const [rows] = await pool.execute(sql, params)
+    const [rows] = await pool.query(sql, params)
     return rows
   } catch (err) {
     const hostInfo = `${DB_HOST}:${DB_PORT}`
