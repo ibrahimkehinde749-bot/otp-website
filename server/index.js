@@ -50,6 +50,8 @@ const port = Number(process.env.PORT || process.env.RAILWAY_PORT) || 4000
 const allowedOrigins = [
   'https://rhverified.netlify.app',
   'https://www.rhverified.netlify.app',
+  'https://rhotp.netlify.app',
+  'https://www.rhotp.com',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
 ]

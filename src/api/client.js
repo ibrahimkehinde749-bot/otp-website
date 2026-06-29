@@ -1,4 +1,7 @@
-const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'
+const fallbackBaseUrl = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+  ? 'http://localhost:4000/api'
+  : 'https://otp-website-production.up.railway.app/api'
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || fallbackBaseUrl
 const API_BASE_URL = configuredBaseUrl.endsWith('/api') ? configuredBaseUrl : `${configuredBaseUrl}/api`
 
 function getAuthToken() {
