@@ -13,43 +13,53 @@ const {
   MYSQL_DATABASE,
   MYSQLUSER,
   MYSQLPASSWORD,
+  USE_MOCK_DATA,
 } = process.env
 
+const useMockData = String(USE_MOCK_DATA).trim().toLowerCase() === 'true'
 const host = DB_HOST || MYSQLHOST
 const port = DB_PORT || MYSQLPORT || '3306'
 const database = DB_NAME || MYSQL_DATABASE
 const user = DB_USER || MYSQLUSER
 const password = DB_PASSWORD || MYSQLPASSWORD
 
-console.log('[DB] connection configuration:')
-console.log(`  DB_HOST=${host || '<not set>'}`)
-console.log(`  DB_PORT=${port}`)
-console.log(`  DB_NAME=${database || '<not set>'}`)
-console.log(`  DB_USER=${user || '<not set>'}`)
-console.log(`  DB_CONNECTION_LIMIT=${DB_CONNECTION_LIMIT}`)
+if (useMockData) {
+  console.log('[DB] USE_MOCK_DATA=true, skipping database pool initialization.')
+  console.log(`  DB_HOST=${host || '<not set>'}`)
+  console.log(`  DB_PORT=${port}`)
+  console.log(`  DB_NAME=${database || '<not set>'}`)
+  console.log(`  DB_USER=${user || '<not set>'}`)
+} else {
+  console.log('[DB] connection configuration:')
+  console.log(`  DB_HOST=${host || '<not set>'}`)
+  console.log(`  DB_PORT=${port}`)
+  console.log(`  DB_NAME=${database || '<not set>'}`)
+  console.log(`  DB_USER=${user || '<not set>'}`)
+  console.log(`  DB_CONNECTION_LIMIT=${DB_CONNECTION_LIMIT}`)
 
-const missingEnv = []
-if (!host) {
-  missingEnv.push('DB_HOST or MYSQLHOST')
-}
-if (!database) {
-  missingEnv.push('DB_NAME or MYSQL_DATABASE')
-}
-if (!user) {
-  missingEnv.push('DB_USER or MYSQLUSER')
-}
-if (!password) {
-  missingEnv.push('DB_PASSWORD or MYSQLPASSWORD')
+  const missingEnv = []
+  if (!host) {
+    missingEnv.push('DB_HOST or MYSQLHOST')
+  }
+  if (!database) {
+    missingEnv.push('DB_NAME or MYSQL_DATABASE')
+  }
+  if (!user) {
+    missingEnv.push('DB_USER or MYSQLUSER')
+  }
+  if (!password) {
+    missingEnv.push('DB_PASSWORD or MYSQLPASSWORD')
+  }
+
+  if (missingEnv.length > 0) {
+    throw new Error(
+      `[DB] Missing required environment variables: ${missingEnv.join(', ')}. ` +
+      'Please set DB_HOST, DB_NAME, DB_USER, and DB_PASSWORD before starting the application.'
+    )
+  }
 }
 
-if (missingEnv.length > 0) {
-  throw new Error(
-    `[DB] Missing required environment variables: ${missingEnv.join(', ')}. ` +
-    'Please set DB_HOST, DB_NAME, DB_USER, and DB_PASSWORD before starting the application.'
-  )
-}
-
-export const pool = mysql.createPool({
+export const pool = useMockData ? null : mysql.createPool({
   host,
   port: Number(port),
   user,
@@ -63,6 +73,9 @@ export const pool = mysql.createPool({
 })
 
 export async function query(sql, params = []) {
+  if (useMockData) {
+    throw new Error('[DB] Database access is disabled when USE_MOCK_DATA=true.')
+  }
   try {
     const [rows] = await pool.query(sql, params)
     return rows
